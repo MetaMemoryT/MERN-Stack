@@ -9,6 +9,7 @@ import IconMenu from 'material-ui/IconMenu';
 import MenuItem from 'material-ui/MenuItem';
 import MoreVertIcon from 'material-ui/svg-icons/navigation/more-vert';
 import Snackbar from 'material-ui/Snackbar';
+import Signup from './Signup';
 
 
 const axInstance = axios.create({
@@ -38,13 +39,13 @@ class App extends React.Component {
   handleLogin(user){
     axInstance.post('authenticate', user)
     .then(res => {
-      console.log(res.data);
-      console.log(user.name);
-      console.log(user.password);
-      console.log(res.data.token);
+
       if(res.data.success){
-        this.setState({token: res.data.token, name: user.name, userID: res.data.id, snackMsg:'Berhasil Login'});
-        this.setState({snackbar: true});
+        if(!res.data.isVerified){
+          this.setState({snackbar: true, snackMsg: 'Silahkan Verifikasi email dahulu'});
+        }else{
+          this.setState({token: res.data.token, name: user.name, userID: res.data.id, snackMsg:'Berhasil Login',snackbar: true});
+        }
       }else{
         this.setState({snackMsg: 'Gagal login'});
         this.setState({snackbar: true});
@@ -62,11 +63,11 @@ class App extends React.Component {
   }
 
   login(){
-    this.setState({isLogin: false});
+    this.setState({isLogin: true});
   }
 
   signup(){
-    this.setState({isLogin: true});
+    this.setState({isLogin: false});
   }
 
   handleSignOut(){
@@ -83,7 +84,12 @@ class App extends React.Component {
     axInstance.post('signup',user)
     .then(res=>{
       if(res.data.success){
-        this.handleLogin(user);
+        this.setState({snackMsg: res.data.message});
+        this.setState({snackbar: true});
+        this.setState({isLogin: true});
+      }else{
+        this.setState({snackMsg: res.data.message});
+        this.setState({snackbar: true});
       }
     })
     .catch(err=>{
@@ -94,11 +100,17 @@ class App extends React.Component {
     let menu = null;
     let menu1st = null;
     let menu2nd = null;
+    let signOrLog = null;
     if(this.state.token){
       menu = <MenuItem primaryText="Sign out" onClick={this.handleSignOut}/>
     }else{
       menu1st = <MenuItem primaryText="Sign Up" onClick={this.signup}/>
       menu2nd = <MenuItem primaryText="Log In" onClick={this.login}/>
+    }
+    if(this.state.isLogin){
+      signOrLog = <Login handleLogin={this.handleLogin} nameError={this.state.nameError} passError={this.state.passError}/>
+    }else{
+      signOrLog = <Signup handleSignUp={this.handleSignUp} />
     }
     return (
       <div>
@@ -120,13 +132,13 @@ class App extends React.Component {
           }/>
         {(this.state.token) ? <CommentBox token={this.state.token} logName={this.state.name} userLogin={this.state.userID} pollInterval={2000}/>
         :
-        <Login handleLogin={this.handleLogin} handleSignUp={this.handleSignUp} nameError={this.state.nameError} passError={this.state.passError}/> }
-          <Snackbar
-          open={this.state.snackbar}
-          message={this.state.snackMsg}
-          autoHideDuration={2000}
-          onRequestClose={this.handleRequestClose}
-        />
+        signOrLog}
+        <Snackbar
+        open={this.state.snackbar}
+        message={this.state.snackMsg}
+        autoHideDuration={2000}
+        onRequestClose={this.handleRequestClose}
+      />
       </div>
     )
   }
